@@ -12,9 +12,9 @@ from psychopy import gui, event, core
 
 from Maze_map import *
 
-
 ### Set specific paths --- change based on computer --- follow same folder format
 filedir = '/Users/chaodanluo/Desktop/lab_github/Maze/solving_log_dir/'#provide output file directory
+#filedir = '/Users/kaminkim/Documents/projects/iEEG_MAZE/MazeGame/data/'#do not delet: comment out instead
 
 ### Session information GUI
 correctSubj = False
@@ -238,7 +238,8 @@ def run_guess(display, screen, trial_map, spr_player, spr_tiles, background):
     screen.blit(background, (0, 0))
     load = []
     hidden_coor = []
-   
+
+    pygame.display.set_caption('Click where you think the goal object is!')
 
     for i in range(len(trial_map)):
         for j in range(len(trial_map[i])):
@@ -316,6 +317,7 @@ for i in range(nBlock):
        
         trial_map = layout[tseq[j]]
         run_guess(display, screen, trial_map, spr_player, spr_tiles, background)
+        pygame.display.set_caption('Move the agent to find the goal object')
         run_trial(display, screen, trial_map, spr_player, spr_tiles, background)
         pygame.quit()
 logfile.close()
