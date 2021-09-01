@@ -2,6 +2,7 @@ import os
 
 import numpy as np
 import pygame
+from pygame.locals import *
 import time
 import random
 from datetime import datetime, timezone
@@ -13,8 +14,7 @@ from Maze_map import *
 
 
 ### Set specific paths --- change based on computer --- follow same folder format
-# filedir = '/Users/chaodanluo/Desktop/lab_github/Maze/solving_log_dir/'#provide output file directory
-filedir = '/Users/kaminkim/Documents/projects/iEEG_MAZE/MazeGame/data/'#provide output file directory
+filedir = '/Users/chaodanluo/Desktop/lab_github/Maze/solving_log_dir/'#provide output file directory
 
 ### Session information GUI
 correctSubj = False
@@ -47,6 +47,10 @@ nTrial = 5
 screen_length = 288
 screen_width = 224
 screen = pygame.Surface((screen_length, screen_width))
+
+# record mouse click map
+mouse_x_map = [range(0,64),range(64,128),range(128,192),range(192,256),range(256,320),range(320,384),range(384,448),range(448,512),range(512,576)]
+mouse_y_map = [range(0,64),range(64,128),range(128,192),range(192,256),range(256,320),range(320,384),range(384,448)]
 
 def run_trial(display, screen, trial_map, spr_player, spr_tiles, background):
 
@@ -220,7 +224,55 @@ def run_guess(display, screen, trial_map, spr_player, spr_tiles, background):
     # load & display the initial map status
     # ask where the goal would be
     # record the coordinate (from the maze matrix) of mouse click
-    print('hey')
+    class Terrain():
+        def __init__(self, x, y, Type):
+            self.x = x
+            self.y = y
+            self.col = False
+            self.type = Type
+                
+        def draw(self):
+            # this blits the tiles at the position, but starting with 6*32 end ending 32 further
+            screen.blit(spr_tiles, (int(self.x), int(self.y)), (self.type * 32, 0, 32, 32))
+
+    screen.blit(background, (0, 0))
+    load = []
+    hidden_coor = []
+   
+
+    for i in range(len(trial_map)):
+        for j in range(len(trial_map[i])):
+            if trial_map[i][j] == "P":
+                load.append(Terrain(j * 32, i * 32, 1))
+            if trial_map[i][j] == "0":
+                load.append(Terrain(j * 32, i * 32, 0))
+            if trial_map[i][j] == "1":
+                load.append(Terrain(j * 32, i * 32, 1))
+                hidden_coor.append((range(j * 64, (j+1) * 64),range(i * 64, (i+1) * 64)))
+            if trial_map[i][j] == "2":
+                load.append(Terrain(j * 32, i * 32, 1))
+                hidden_coor.append((range(j * 64, (j+1) * 64),range(i * 64, (i+1) * 64)))
+
+    for obj in load:
+        obj.draw()
+    
+    display.blit(pygame.transform.scale(screen, (screen_length * 2, screen_width * 2)), (0, 0))
+    pygame.display.flip()
+    correctClick = False
+    while not correctClick:
+        # psychopy instructions
+        for event in pygame.event.get():
+            if event.type == MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    mouse_x, mouse_y = pygame.mouse.get_pos()
+                    for index in range(len(hidden_coor)):
+                        if mouse_x in hidden_coor[index][0] and mouse_y in hidden_coor[index][1]:
+                            guess_coor = ((hidden_coor[index][0][-1]+1) / 64, (hidden_coor[index][1][-1]+1) / 64)
+                            print(guess_coor)
+                            logfile.write(str(guess_coor) + '\n')
+                            correctClick = True 
+                
+        
 
 print(len(layout))
 # KK: ADD RANDOM SELECTION OF LAYOUTS TO USE
@@ -230,8 +282,8 @@ print(len(layout))
 # shuffle themes
 maze_theme = {
     'face' : ['happyface', 'original2', 'milkywhite'],
-    'dolphin' : ['dolphin', 'ocean', 'blue'],
-    'monkey' : ['monkey', 'jungle', 'green'],
+    'dolphin' : ['dolphin', 'ocean', 'ocean_blue2'],
+    'monkey' : ['monkey', 'jungle', 'plain_green'],
     'bird' : ['bird', 'sky', 'white'],
     'cow' : ['cow', 'pasture3', 'grassgreen']
 }
@@ -259,11 +311,11 @@ for i in range(nBlock):
         background_name = maze_theme[new_layout[tseq[j]][7]][2]
 
         spr_player = pygame.image.load("assets/" + player_name + ".png").convert_alpha()
-        spr_tiles = pygame.image.load("assets/" + tiles_name + ".png").convert_alpha()
+        spr_tiles = pygame.image.load("assets/" + tiles_name + ".png").convert_alpha() 
         background = pygame.image.load("assets/" + background_name + ".jpg").convert()
        
         trial_map = layout[tseq[j]]
-        #run_guess(display, screen, trial_map, spr_player, spr_tiles, background)
+        run_guess(display, screen, trial_map, spr_player, spr_tiles, background)
         run_trial(display, screen, trial_map, spr_player, spr_tiles, background)
         pygame.quit()
 logfile.close()
