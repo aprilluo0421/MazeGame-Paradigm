@@ -13,9 +13,13 @@ from psychopy import gui, event, core
 
 from Maze_map import *
 
-
 ### Set specific paths --- change based on computer --- follow same folder format
+<<<<<<< HEAD
 filedir = '/Users/chaodanluo/Desktop/lab_github/MazeGame/solving_log_dir/'#provide output file directory
+=======
+filedir = '/Users/chaodanluo/Desktop/lab_github/Maze/solving_log_dir/'#provide output file directory
+#filedir = '/Users/kaminkim/Documents/projects/iEEG_MAZE/MazeGame/data/'#do not delet: comment out instead
+>>>>>>> 6f4aea6b93b61c4ced689e6ad77fff1c8e5c54fe
 
 ### Session information GUI
 correctSubj = False
@@ -236,9 +240,14 @@ def run_guess(display, screen, trial_map, spr_player, spr_tiles, background):
     screen.blit(background, (0, 0))
     load = []
     hidden_coor = []
+<<<<<<< HEAD
     
     pygame.display.set_caption('Click where you think the goal object is!')
     
+=======
+
+    pygame.display.set_caption('Click where you think the goal object is!')
+>>>>>>> 6f4aea6b93b61c4ced689e6ad77fff1c8e5c54fe
 
     for i in range(len(trial_map)):
         for j in range(len(trial_map[i])):
@@ -327,7 +336,11 @@ for i in range(nBlock):
        
         trial_map = layout[tseq[j]]
         run_guess(display, screen, trial_map, spr_player, spr_tiles, background)
+<<<<<<< HEAD
         time.sleep(1)
+=======
+        pygame.display.set_caption('Move the agent to find the goal object')
+>>>>>>> 6f4aea6b93b61c4ced689e6ad77fff1c8e5c54fe
         run_trial(display, screen, trial_map, spr_player, spr_tiles, background)
         pygame.quit()
 for i in range(len(output_df)):
