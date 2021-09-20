@@ -1,6 +1,7 @@
 import os
 
 import numpy as np
+import pandas as pd 
 import pygame
 from pygame.locals import *
 import time
@@ -14,7 +15,7 @@ from Maze_map import *
 
 
 ### Set specific paths --- change based on computer --- follow same folder format
-filedir = '/Users/chaodanluo/Desktop/lab_github/Maze/solving_log_dir/'#provide output file directory
+filedir = '/Users/chaodanluo/Desktop/lab_github/MazeGame/solving_log_dir/'#provide output file directory
 
 ### Session information GUI
 correctSubj = False
@@ -30,9 +31,8 @@ while not correctSubj:
 # Create the logfile
 if os.path.isfile(filedir+"%d_maze_log.txt" %(subjectID)):
     os.rename(filedir+"%d_maze_log.txt" %(subjectID), filedir+"%d_maze_log_old_%s.txt" %(subjectID,time.time()))
-logfile = open(filedir+"%d_maze_log.txt" %(subjectID),'w')
-line = "key_pressed \t time \t coordinate \t RT \n"
-logfile.write(line)
+output_df = []
+
 
 
 # Set up a global clock for keeping time
@@ -71,40 +71,32 @@ def run_trial(display, screen, trial_map, spr_player, spr_tiles, background):
                             key_pressed = 'up'
                             timestamp = datetime.now(timezone.utc).astimezone()
                             coordinate = (self.x / 32) + 1, (self.y / 32) + 1
-                            rt = timestamp - start_time
-                            line = [key_pressed, str(timestamp), coordinate, rt]
-                            lineTOstr = '\t'.join([str(elem) for elem in line])
-                            logfile.write(lineTOstr + '\n')
+                            line = [key_pressed, timestamp, coordinate]
+                            output_df.append(line)
                     if event.key == pygame.K_DOWN and self.y < screen_width-32:
                         if ((self.x/32, (self.y + 32)/32)) not in brick_index:
                             self.y += 32
                             key_pressed = 'down'
                             timestamp = datetime.now(timezone.utc).astimezone()
                             coordinate = (self.x / 32) + 1, (self.y / 32) + 1
-                            rt = timestamp - start_time
-                            line = [key_pressed, str(timestamp), coordinate, rt]
-                            lineTOstr = '\t'.join([str(elem) for elem in line])
-                            logfile.write(lineTOstr + '\n')
+                            line = [key_pressed, timestamp, coordinate]
+                            output_df.append(line)
                     if event.key == pygame.K_LEFT and self.x > 0:
                         if ((self.x - 32)/32, self.y/32) not in brick_index:
                             self.x -= 32
                             key_pressed = 'left'
                             timestamp = datetime.now(timezone.utc).astimezone()
                             coordinate = (self.x / 32) + 1, (self.y / 32) + 1
-                            rt = timestamp - start_time
-                            line = [key_pressed, str(timestamp), coordinate, rt]
-                            lineTOstr = '\t'.join([str(elem) for elem in line])
-                            logfile.write(lineTOstr + '\n')
+                            line = [key_pressed, timestamp, coordinate]
+                            output_df.append(line)
                     if event.key == pygame.K_RIGHT and self.x < screen_length-32:
                         if ((self.x + 32)/32, self.y/32) not in brick_index:
                             self.x += 32
                             key_pressed = 'right'
                             timestamp = datetime.now(timezone.utc).astimezone()
                             coordinate = (self.x / 32) + 1, (self.y / 32) + 1,
-                            rt = timestamp - start_time
-                            line = [key_pressed, str(timestamp), coordinate, rt]
-                            lineTOstr = '\t'.join([str(elem) for elem in line])
-                            logfile.write(lineTOstr + '\n')
+                            line = [key_pressed, timestamp, coordinate]
+                            output_df.append(line)
             
 
         def draw(self):
@@ -165,11 +157,6 @@ def run_trial(display, screen, trial_map, spr_player, spr_tiles, background):
     load = []
     remove = []
     player = Player(0,0)
-    start_time = datetime.now(timezone.utc).astimezone()
-    start_loc = (1.0, 1.0)
-    line = ['start', str(start_time), start_loc]
-    lineTOstr = '\t'.join([str(elem) for elem in line])
-    logfile.write(lineTOstr + '\n')
     hidden_block_index = []
     brick_index = []
     target = ()
@@ -189,12 +176,16 @@ def run_trial(display, screen, trial_map, spr_player, spr_tiles, background):
                 load.append(Terrain(j * 32, i * 32, 1))
                 target = (j, i)
 
+    
+    start_time = datetime.now(timezone.utc).astimezone()
+    start_loc = (1.0, 1.0)
+    line = ['start', start_time, start_loc]
+    output_df.append(line)
     alive = True
     while alive:
 
         screen.blit(background, (0, 0))
 
-        # event is your mouse movement, if press "x", quit the game
         events = pygame.event.get()
         for event in events:
             if event.type == pygame.QUIT:
@@ -203,7 +194,7 @@ def run_trial(display, screen, trial_map, spr_player, spr_tiles, background):
   
 
         # KK: LOG RESPONSE, AGENT LOCATION (COORDINATES INT HE MATRIX)
-
+        
         for obj in load:
             obj.update()
             obj.draw()
@@ -234,11 +225,20 @@ def run_guess(display, screen, trial_map, spr_player, spr_tiles, background):
         def draw(self):
             # this blits the tiles at the position, but starting with 6*32 end ending 32 further
             screen.blit(spr_tiles, (int(self.x), int(self.y)), (self.type * 32, 0, 32, 32))
+        
+        def change_color(self, x, y):
+            if (self.x / 32) + 1 == x and (self.y / 32) + 1 == y:
+                print('after if block x {}, y {}'.format(self.x, self.y))
+                self.type = 3
 
+
+   
     screen.blit(background, (0, 0))
     load = []
     hidden_coor = []
-   
+    
+    pygame.display.set_caption('Click where you think the goal object is!')
+    
 
     for i in range(len(trial_map)):
         for j in range(len(trial_map[i])):
@@ -255,11 +255,14 @@ def run_guess(display, screen, trial_map, spr_player, spr_tiles, background):
 
     for obj in load:
         obj.draw()
-    
     display.blit(pygame.transform.scale(screen, (screen_length * 2, screen_width * 2)), (0, 0))
     pygame.display.flip()
+    
+    
+
     correctClick = False
     while not correctClick:
+       
         # psychopy instructions
         for event in pygame.event.get():
             if event.type == MOUSEBUTTONDOWN:
@@ -268,9 +271,17 @@ def run_guess(display, screen, trial_map, spr_player, spr_tiles, background):
                     for index in range(len(hidden_coor)):
                         if mouse_x in hidden_coor[index][0] and mouse_y in hidden_coor[index][1]:
                             guess_coor = ((hidden_coor[index][0][-1]+1) / 64, (hidden_coor[index][1][-1]+1) / 64)
-                            print(guess_coor)
-                            logfile.write(str(guess_coor) + '\n')
-                            correctClick = True 
+                            output_df.append([guess_coor])
+                            for obj in load:
+                                if (obj.x / 32) + 1 == guess_coor[0] and (obj.y / 32) + 1 == guess_coor[1]:
+                                    obj.type = 3
+                                    obj.draw()
+                                    correctClick = True 
+        display.blit(pygame.transform.scale(screen, (screen_length * 2, screen_width * 2)), (0, 0))
+        pygame.display.flip()
+        time.sleep(1)
+                                                
+                            
                 
         
 
@@ -281,11 +292,11 @@ print(len(layout))
 
 # shuffle themes
 maze_theme = {
-    'face' : ['happyface', 'original2', 'milkywhite'],
-    'dolphin' : ['dolphin', 'ocean', 'ocean_blue2'],
-    'monkey' : ['monkey', 'jungle', 'plain_green'],
-    'bird' : ['bird', 'sky', 'white'],
-    'cow' : ['cow', 'pasture3', 'grassgreen']
+    'face' : ['happyface', 'original_1', 'milkywhite'],
+    'dolphin' : ['dolphin', 'ocean_1', 'ocean_blue2'],
+    'monkey' : ['monkey', 'jungle_1', 'plain_green'],
+    'bird' : ['bird', 'sky_1', 'white'],
+    'cow' : ['cow', 'pasture_1', 'grassgreen']
 }
 theme_strings = ['face', 'dolphin', 'monkey', 'bird', 'cow']
 random.shuffle(theme_strings)
@@ -316,6 +327,20 @@ for i in range(nBlock):
        
         trial_map = layout[tseq[j]]
         run_guess(display, screen, trial_map, spr_player, spr_tiles, background)
+        time.sleep(1)
         run_trial(display, screen, trial_map, spr_player, spr_tiles, background)
         pygame.quit()
-logfile.close()
+for i in range(len(output_df)):
+    if isinstance(output_df[i][0], str):
+        if output_df[i][0] == 'start':
+            rt = 0
+            output_df[i].append(rt)
+        else:
+            rt = str(output_df[i][1] - output_df[i-1][1])
+            output_df[i].append(rt)
+for i in range(len(output_df)):
+    if isinstance(output_df[i][0], str):
+        output_df[i][1] = str(output_df[i][1])
+df = pd.DataFrame(output_df)
+os.chdir(filedir)
+df.to_csv("%d_maze_log.txt" %(subjectID), header = ['key_pressed', 'timestamp', 'coordinate', 'rt'], sep = '\t')  
