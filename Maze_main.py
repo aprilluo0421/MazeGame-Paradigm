@@ -1,25 +1,20 @@
 import os
-
-import numpy as np
-import pandas as pd 
-import pygame
-from pygame.locals import *
-import time
 import random
+import time
 from datetime import datetime, timezone
 
-import psychopy
-from psychopy import gui, event, core
-
+import numpy as np
+import pandas as pd
+import pygame
+from psychopy import gui, core
+from pygame.locals import *
 from Maze_map import *
+from Maze_theme import *
 
 ### Set specific paths --- change based on computer --- follow same folder format
-<<<<<<< HEAD
-filedir = '/Users/chaodanluo/Desktop/lab_github/MazeGame/solving_log_dir/'#provide output file directory
-=======
-filedir = '/Users/chaodanluo/Desktop/lab_github/Maze/solving_log_dir/'#provide output file directory
-#filedir = '/Users/kaminkim/Documents/projects/iEEG_MAZE/MazeGame/data/'#do not delet: comment out instead
->>>>>>> 6f4aea6b93b61c4ced689e6ad77fff1c8e5c54fe
+# filedir = '/Users/chaodanluo/Desktop/lab_github/MazeGame/solving_log_dir/'#provide output file directory
+filedir_data = '/Users/kaminkim/Documents/projects/iEEG_MAZE/MazeGame/data/'#do not delete: comment out instead
+filedir_config = '/Users/kaminkim/Documents/projects/iEEG_MAZE/MazeGame/config/'#do not delete: comment out instead
 
 ### Session information GUI
 correctSubj = False
@@ -33,21 +28,20 @@ while not correctSubj:
             correctSubj = True
 
 # Create the logfile
-if os.path.isfile(filedir+"%d_maze_log.txt" %(subjectID)):
-    os.rename(filedir+"%d_maze_log.txt" %(subjectID), filedir+"%d_maze_log_old_%s.txt" %(subjectID,time.time()))
+if os.path.isfile(filedir_data+"%d_maze_log.txt" %(subjectID)):
+    os.rename(filedir_data+"%d_maze_log.txt" %(subjectID), filedir_data+"%d_maze_log_old_%s.txt" %(subjectID,time.time()))
 output_df = []
-
-
 
 # Set up a global clock for keeping time
 globalClock = core.Clock()
 
-# define experiment structure
+# define experiment structure & parameters
 nBlock = 1
-nTrial = 5
-
-###################### START: modification of Maze.py ###########################################
-# create the screen
+nRepeat = 3
+ITI = 1 # pause before launching the next maze in second
+# hard-set features: do not change lines below
+map_dimension = [7, 9]
+nSet = 3 # 3 sets of 8 mazes, counterbalanced for goal location
 screen_length = 288
 screen_width = 224
 screen = pygame.Surface((screen_length, screen_width))
@@ -56,16 +50,15 @@ screen = pygame.Surface((screen_length, screen_width))
 mouse_x_map = [range(0,64),range(64,128),range(128,192),range(192,256),range(256,320),range(320,384),range(384,448),range(448,512),range(512,576)]
 mouse_y_map = [range(0,64),range(64,128),range(128,192),range(192,256),range(256,320),range(320,384),range(384,448)]
 
+# define a function that runs a maze
+# Player and Terrain classes are initialized/defined for each maze trial
 def run_trial(display, screen, trial_map, spr_player, spr_tiles, background):
-
-    # class Player(pygame.sprite.Sprite):
     class Player():
         def __init__(self, x, y):
             self.x = x
             self.y = y 
     
         def update(self):
-
             #print('curr self_x_y {} {}'.format(self.x, self.y))
             for event in events:
                 if event.type == pygame.KEYDOWN:
@@ -101,11 +94,9 @@ def run_trial(display, screen, trial_map, spr_player, spr_tiles, background):
                             coordinate = (self.x / 32) + 1, (self.y / 32) + 1,
                             line = [key_pressed, timestamp, coordinate]
                             output_df.append(line)
-            
 
         def draw(self):
             screen.blit(spr_player, (int(self.x), int(self.y)))
-
 
     class Terrain():
         def __init__(self, x, y, Type):
@@ -113,9 +104,8 @@ def run_trial(display, screen, trial_map, spr_player, spr_tiles, background):
             self.y = y
             self.col = False
             self.type = Type
+
         def update(self):
-
-
             right_index = ((player.x+32) / 32, player.y / 32)
             left_index = ((player.x-32) / 32, player.y / 32)
             up_index = (player.x / 32, (player.y-32) / 32)
@@ -142,7 +132,6 @@ def run_trial(display, screen, trial_map, spr_player, spr_tiles, background):
                     remove.append(self)
                 elif (self.x // 32, self.y // 32) == target:
                     self.type = 2
-                
 
             if (self.x // 32, self.y // 32) == down_index: 
                 if (self.x // 32, self.y // 32) in hidden_block_index:
@@ -150,17 +139,14 @@ def run_trial(display, screen, trial_map, spr_player, spr_tiles, background):
                     remove.append(self)
                 elif (self.x // 32, self.y // 32) == target:
                     self.type = 2
-            
                 
         def draw(self):
             # this blits the tiles at the position, but starting with 6*32 end ending 32 further
             screen.blit(spr_tiles, (int(self.x), int(self.y)), (self.type * 32, 0, 32, 32))
 
-
-
     load = []
     remove = []
-    player = Player(0,0)
+    player = Player(0,0) # initial x y coordinate for a player is always [0 0]
     hidden_block_index = []
     brick_index = []
     target = ()
@@ -179,29 +165,26 @@ def run_trial(display, screen, trial_map, spr_player, spr_tiles, background):
             if trial_map[i][j] == "2":
                 load.append(Terrain(j * 32, i * 32, 1))
                 target = (j, i)
-
     
     start_time = datetime.now(timezone.utc).astimezone()
     start_loc = (1.0, 1.0)
     line = ['start', start_time, start_loc]
     output_df.append(line)
+
     alive = True
     while alive:
 
         screen.blit(background, (0, 0))
 
         events = pygame.event.get()
-        for event in events:
-            if event.type == pygame.QUIT:
-                run = False
+        # for event in events:
+        #     if event.type == pygame.QUIT:
+        #         alive = False
 
-  
-
-        # KK: LOG RESPONSE, AGENT LOCATION (COORDINATES INT HE MATRIX)
-        
         for obj in load:
             obj.update()
             obj.draw()
+
         for obj in remove:
             load.remove(obj)
         remove = []
@@ -211,9 +194,6 @@ def run_trial(display, screen, trial_map, spr_player, spr_tiles, background):
 
         display.blit(pygame.transform.scale(screen, (screen_length * 2, screen_width * 2)), (0, 0))
         pygame.display.flip()
-
- 
-##################### END: modification of Maze.py ###########################################
 
 def run_guess(display, screen, trial_map, spr_player, spr_tiles, background):
     # load & display the initial map status
@@ -235,19 +215,9 @@ def run_guess(display, screen, trial_map, spr_player, spr_tiles, background):
                 print('after if block x {}, y {}'.format(self.x, self.y))
                 self.type = 3
 
-
-   
     screen.blit(background, (0, 0))
     load = []
     hidden_coor = []
-<<<<<<< HEAD
-    
-    pygame.display.set_caption('Click where you think the goal object is!')
-    
-=======
-
-    pygame.display.set_caption('Click where you think the goal object is!')
->>>>>>> 6f4aea6b93b61c4ced689e6ad77fff1c8e5c54fe
 
     for i in range(len(trial_map)):
         for j in range(len(trial_map[i])):
@@ -266,14 +236,12 @@ def run_guess(display, screen, trial_map, spr_player, spr_tiles, background):
         obj.draw()
     display.blit(pygame.transform.scale(screen, (screen_length * 2, screen_width * 2)), (0, 0))
     pygame.display.flip()
-    
-    
 
     correctClick = False
     while not correctClick:
-       
+        events = pygame.event.get()
         # psychopy instructions
-        for event in pygame.event.get():
+        for event in events:
             if event.type == MOUSEBUTTONDOWN:
                 if event.button == 1:
                     mouse_x, mouse_y = pygame.mouse.get_pos()
@@ -289,60 +257,110 @@ def run_guess(display, screen, trial_map, spr_player, spr_tiles, background):
         display.blit(pygame.transform.scale(screen, (screen_length * 2, screen_width * 2)), (0, 0))
         pygame.display.flip()
         time.sleep(1)
-                                                
-                            
-                
-        
 
-print(len(layout))
-# KK: ADD RANDOM SELECTION OF LAYOUTS TO USE
+def get_coord(maze_map):
+    for row in range(len(maze_map)):
+        clm = str.find(maze_map[row], '2')
+        if clm > -1:
+            target_coord = [row, clm]
+    return target_coord
 
-# running blocks
+def get_quad(row, clm, dim):
+    row = row + 1
+    clm = clm + 1
+    if row < dim[0]/2 and clm > dim[1]/2:
+        target_quadrant = 1
+    elif row > dim[0]/2 and clm > dim[1]/2:
+        target_quadrant = 2
+    elif row > dim[0]/2 and clm < dim[1]/2:
+        target_quadrant = 3
+    elif row < dim[0]/2 and clm < dim[1]/2:
+        target_quadrant = 4
+    return target_quadrant
 
-# shuffle themes
-maze_theme = {
-    'face' : ['happyface', 'original_1', 'milkywhite'],
-    'dolphin' : ['dolphin', 'ocean_1', 'ocean_blue2'],
-    'monkey' : ['monkey', 'jungle_1', 'plain_green'],
-    'bird' : ['bird', 'sky_1', 'white'],
-    'cow' : ['cow', 'pasture_1', 'grassgreen']
-}
-theme_strings = ['face', 'dolphin', 'monkey', 'bird', 'cow']
+def counterbalance_maze_set (maze_idx, goal_quad):
+    q1_mazelist = maze_idx[goal_quad == 1]
+    q2_mazelist = maze_idx[goal_quad == 2]
+    q3_mazelist = maze_idx[goal_quad == 3]
+    q4_mazelist = maze_idx[goal_quad == 4]
+    random.shuffle(q1_mazelist)
+    random.shuffle(q2_mazelist)
+    random.shuffle(q3_mazelist)
+    random.shuffle(q4_mazelist)
+    maze_set = []
+    maze_set.append(np.concatenate((q1_mazelist[0:2], q2_mazelist[0:2], q3_mazelist[0:2], q4_mazelist[0:2])))
+    maze_set.append(np.concatenate((q1_mazelist[2:4], q2_mazelist[2:4], q3_mazelist[2:4], q4_mazelist[2:4])))
+    maze_set.append(np.concatenate((q1_mazelist[4:6], q2_mazelist[4:6], q3_mazelist[4:6], q4_mazelist[4:6])))
+    return maze_set
+
+############## prepare stimuli ###########################3
+# associate each maze (layout) with a randomly-selected theme (shuffled)
 random.shuffle(theme_strings)
-for a in range(len(theme_strings)):
-    layout[a] + (theme_strings[a],)
-new_layout = [layout[a] + (theme_strings[a],) for a in range(len(theme_strings)) ]
+new_layout = [layout[a] + (theme_strings[a],) for a in range(len(theme_strings))]
 
-for i in range(nBlock):
-    # KK: printings are for sanity check
-    tseq = np.arange(0, nTrial, 1)
-    print(tseq)
-    random.shuffle(tseq)
-    print(tseq)
+# maze assignment across blocks
+# 8 mazes are learned in a set of 8 mazes: equal number of goal locations in each quadrantn a set
+# a set of 8 mazes are repeated over 3 consecutive blocks
 
-    # set up and run each trial
-    for j in range(len(tseq)):
-        # define map & agent for this trial
-        display = pygame.display.set_mode((screen_length * 2, screen_width * 2)) # needs to be run before pygame.image.load
+# Extract goal locations from maze_map, assign mazes to 3 sets while counterbalancing for goal location
+goal_quad = []
+for maze in range(len(layout)):
+    goal = get_coord(layout[maze])
+    goal_quad.append(get_quad(goal[0], goal[1], map_dimension))
+goal_quad = np.array(goal_quad)
+maze_idx = np.arange(len(goal_quad))
+maze_set = counterbalance_maze_set(maze_idx, goal_quad)
 
-        # re-select in a map-specific manner
-        player_name = maze_theme[new_layout[tseq[j]][7]][0]
-        tiles_name = maze_theme[new_layout[tseq[j]][7]][1]
-        background_name = maze_theme[new_layout[tseq[j]][7]][2]
+maze_seqs = []
+for set in range(len(maze_set)):
+    maze_seq = maze_set[set] # DO NOT SHULFFLE THIS
+    maze_seqlist = maze_seq.tolist()
+    # will repeat this set - with maze order shuffled for each repetition
+    for block in range(nRepeat):
+        # randomize maze sequence, set up and run each trial
+        rand_seq = random.sample(maze_seqlist, len(maze_seqlist))
+        maze_seqs.append(['nav', rand_seq])
+        for j in range(len(maze_seq)):
+            # define map & agent for this trial
+            display = pygame.display.set_mode((screen_length * 2, screen_width * 2)) # needs to be run before pygame.image.load
 
-        spr_player = pygame.image.load("assets/" + player_name + ".png").convert_alpha()
-        spr_tiles = pygame.image.load("assets/" + tiles_name + ".png").convert_alpha() 
-        background = pygame.image.load("assets/" + background_name + ".jpg").convert()
-       
-        trial_map = layout[tseq[j]]
-        run_guess(display, screen, trial_map, spr_player, spr_tiles, background)
-<<<<<<< HEAD
-        time.sleep(1)
-=======
-        pygame.display.set_caption('Move the agent to find the goal object')
->>>>>>> 6f4aea6b93b61c4ced689e6ad77fff1c8e5c54fe
-        run_trial(display, screen, trial_map, spr_player, spr_tiles, background)
-        pygame.quit()
+            # re-select in a map-specific manner
+            player_name = maze_theme[new_layout[maze_seq[j]][7]][0]
+            tiles_name = maze_theme[new_layout[maze_seq[j]][7]][1]
+            background_name = maze_theme[new_layout[maze_seq[j]][7]][2]
+
+            spr_player = pygame.image.load("assets/" + player_name + ".png").convert_alpha()
+            spr_tiles = pygame.image.load("assets/" + tiles_name + ".png").convert_alpha()
+            background = pygame.image.load("assets/" + background_name + ".jpg").convert()
+            trial_map = layout[maze_seq[j]]
+
+            pygame.display.set_caption('Move the agent to find the goal object')
+            run_trial(display, screen, trial_map, spr_player, spr_tiles, background)
+            time.sleep(ITI)
+            pygame.quit()
+
+        # randomize maze sequenc and run quiz for this set
+        rand_seq = random.sample(maze_seqlist, len(maze_seqlist))
+        maze_seqs.append(['quiz', rand_seq])
+        for j in range(len(maze_seq)):
+            # define map & agent for this trial
+            display = pygame.display.set_mode((screen_length * 2, screen_width * 2))  # needs to be run before pygame.image.load
+
+            # re-select in a map-specific manner
+            player_name = maze_theme[new_layout[maze_seq[j]][7]][0]
+            tiles_name = maze_theme[new_layout[maze_seq[j]][7]][1]
+            background_name = maze_theme[new_layout[maze_seq[j]][7]][2]
+
+            spr_player = pygame.image.load("assets/" + player_name + ".png").convert_alpha()
+            spr_tiles = pygame.image.load("assets/" + tiles_name + ".png").convert_alpha()
+            background = pygame.image.load("assets/" + background_name + ".jpg").convert()
+            trial_map = layout[maze_seq[j]]
+
+            pygame.display.set_caption('Click where you think the goal object was in this maze!')
+            run_guess(display, screen, trial_map, spr_player, spr_tiles, background)
+            time.sleep(1)
+
+# write out a logfile
 for i in range(len(output_df)):
     if isinstance(output_df[i][0], str):
         if output_df[i][0] == 'start':
@@ -354,6 +372,18 @@ for i in range(len(output_df)):
 for i in range(len(output_df)):
     if isinstance(output_df[i][0], str):
         output_df[i][1] = str(output_df[i][1])
+
 df = pd.DataFrame(output_df)
-os.chdir(filedir)
-df.to_csv("%d_maze_log.txt" %(subjectID), header = ['key_pressed', 'timestamp', 'coordinate', 'rt'], sep = '\t')  
+os.chdir(filedir_data)
+df.to_csv("%d_maze_log.csv" %(subjectID), header = ['key_pressed', 'timestamp', 'coordinate', 'rt'], sep = ',')
+
+# save sequences of mazes used
+seq_df = pd.DataFrame(maze_seqs)
+os.chdir(filedir_config)
+seq_df.to_csv("%d_maze_seq.csv" %(subjectID), header = ['task', 'sequence'], sep = ',')
+
+# save maze-theme association used
+theme_df = pd.DataFrame(theme_strings)
+os.chdir(filedir_config)
+theme_df.to_csv("%d_maze_themes.csv" %(subjectID), header = ['theme'], sep = ',')
+
