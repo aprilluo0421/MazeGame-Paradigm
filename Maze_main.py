@@ -38,7 +38,7 @@ globalClock = core.Clock()
 
 # define experiment structure & parameters
 nBlock = 1
-nRepeat = 3 
+nRepeat = 3
 ITI = 1 # pause before launching the next maze in second
 # hard-set features: do not change lines below
 map_dimension = [7, 9]
@@ -251,7 +251,7 @@ def run_guess(display, screen, trial_map, spr_player, spr_tiles, background, blo
                     for index in range(len(hidden_coor)):
                         if mouse_x in hidden_coor[index][0] and mouse_y in hidden_coor[index][1]:
                             guess_coor = ((hidden_coor[index][0][-1]+1) / 64, (hidden_coor[index][1][-1]+1) / 64)
-                            line = ['quiz', block_num, trial_num + 1, guess_coor]
+                            line = ['quiz', block_num, trial_num + 1, '', '', guess_coor]
                             output_df.append(line)
                             for obj in load:
                                 if (obj.x / 32) + 1 == guess_coor[0] and (obj.y / 32) + 1 == guess_coor[1]:
@@ -373,7 +373,7 @@ for i in range(len(output_df)):
             rt = 0
             output_df[i].append(rt)
         else:
-            rt = str((output_df[i][4] - output_df[i-1][4]).microseconds)
+            rt = str((output_df[i][4] - output_df[i-1][4]).total_seconds()*1000)
             output_df[i].append(rt)
 for i in range(len(output_df)):
     if output_df[i][0] == 'nav':
