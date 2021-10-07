@@ -38,7 +38,7 @@ globalClock = core.Clock()
 
 # define experiment structure & parameters
 nBlock = 1
-nRepeat = 3
+nRepeat = 1
 ITI = 1 # pause before launching the next maze in second
 # hard-set features: do not change lines below
 map_dimension = [7, 9]
