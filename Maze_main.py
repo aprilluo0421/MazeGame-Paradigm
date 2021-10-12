@@ -6,16 +6,17 @@ from datetime import datetime, timezone
 import numpy as np
 import pandas as pd
 import pygame
+import pygame.freetype
 from psychopy import gui, core
 from pygame.locals import *
 from Maze_map import *
 from Maze_theme import *
 
 ### Set specific paths --- change based on computer --- follow same folder format
-filedir_data = '/Users/chaodanluo/Desktop/lab_github/MazeGame/data/'#do not delete: comment out instead
-filedir_config = '/Users/chaodanluo/Desktop/lab_github/MazeGame/config/'#do not delete: comment out instead
-# filedir_data = '/Users/kaminkim/Documents/projects/iEEG_MAZE/MazeGame/data/'#do not delete: comment out instead
-# filedir_config = '/Users/kaminkim/Documents/projects/iEEG_MAZE/MazeGame/config/'#do not delete: comment out instead
+# filedir_data = '/Users/chaodanluo/Desktop/lab_github/MazeGame/data/'#do not delete: comment out instead
+# filedir_config = '/Users/chaodanluo/Desktop/lab_github/MazeGame/config/'#do not delete: comment out instead
+filedir_data = '/Users/kaminkim/Documents/projects/iEEG_MAZE/MazeGame/data/'#do not delete: comment out instead
+filedir_config = '/Users/kaminkim/Documents/projects/iEEG_MAZE/MazeGame/config/'#do not delete: comment out instead
 
 ### Session information GUI
 correctSubj = False
@@ -37,7 +38,6 @@ output_df = []
 globalClock = core.Clock()
 
 # define experiment structure & parameters
-nBlock = 1
 nRepeat = 1
 ITI = 1 # pause before launching the next maze in second
 # hard-set features: do not change lines below
@@ -297,7 +297,28 @@ def counterbalance_maze_set (maze_idx, goal_quad):
     maze_set.append(np.concatenate((q1_mazelist[4:6], q2_mazelist[4:6], q3_mazelist[4:6], q4_mazelist[4:6])))
     return maze_set
 
-############## prepare stimuli ###########################3
+def render_text(surface, text, text_size, color):
+    surface.fill((196, 196, 196))
+    text_rect = font.get_rect(text, size = text_size)
+    text_rect.center = surface.get_rect().center
+    font.render_to(surface, text_rect, text, color, size = text_size)
+
+def display_message_timed(surface, text, text_color, holdtime):
+    render_text(surface, text, 35, text_color)
+    pygame.display.flip()
+    time.sleep(holdtime)
+
+def display_message_key(surface, text, text_color):
+    wait = True
+    render_text(surface, text, 35, text_color)
+    pygame.display.flip()
+    while wait:
+        events = pygame.event.get()
+        for event in events:
+            if event.type == pygame.KEYDOWN:
+                wait = False
+
+############## prepare stimuli ###########################
 # associate each maze (layout) with a randomly-selected theme (shuffled)
 random.shuffle(theme_strings)
 new_layout = [layout[a] + (theme_strings[a],) for a in range(len(theme_strings))]
@@ -305,7 +326,6 @@ new_layout = [layout[a] + (theme_strings[a],) for a in range(len(theme_strings))
 # maze assignment across blocks
 # 8 mazes are learned in a set of 8 mazes: equal number of goal locations in each quadrantn a set
 # a set of 8 mazes are repeated over 3 consecutive blocks
-
 # Extract goal locations from maze_map, assign mazes to 3 sets while counterbalancing for goal location
 goal_quad = []
 for maze in range(len(layout)):
@@ -315,20 +335,41 @@ goal_quad = np.array(goal_quad)
 maze_idx = np.arange(len(goal_quad))
 maze_set = counterbalance_maze_set(maze_idx, goal_quad)
 
+############## prepare messages ###########################
+instructText = {'inst_nav': "Navigate to find the goal object.",
+                'inst_quiz': "Click at the goal object location.",
+                'new_set': "You'll now visit new mazes!",
+                'start': "Press a key to start.",
+                'greatjob': 'Great Job!',
+                }
+text_color = (10, 10, 10)
+
+pygame.init()
+font = pygame.freetype.SysFont("freesansbold", 0)
+display = pygame.display.set_mode((screen_length * 2, screen_width * 2)) # needs to be run before pygame.image.load
+
 block_num = 1
 maze_seqs = []
 for set in range(len(maze_set)):
     maze_seq = maze_set[set] # DO NOT SHULFFLE THIS
     maze_seqlist = maze_seq.tolist()
     # will repeat this set - with maze order shuffled for each repetition
+    if set > 0:
+        display_message_key(display, instructText['new_set'], text_color)
+
     for block in range(nRepeat):
         # randomize maze sequence, set up and run each trial
         rand_seq = random.sample(maze_seqlist, len(maze_seqlist))
         maze_seqs.append(['nav', rand_seq])
-        for j in range(len(rand_seq)):
-            # define map & agent for this trial
-            display = pygame.display.set_mode((screen_length * 2, screen_width * 2)) # needs to be run before pygame.image.load
 
+        # message: starting navigation
+        display_message_key(display, instructText['inst_nav'], text_color)
+        display_message_key(display, instructText['start'], text_color)
+        pygame.quit()
+        for j in range(len(rand_seq)):
+            display = pygame.display.set_mode((screen_length * 2, screen_width * 2))  # needs to be run before pygame.image.load
+
+            # define map & agent for this trial
             # re-select in a map-specific manner
             player_name = maze_theme[new_layout[rand_seq[j]][7]][0]
             tiles_name = maze_theme[new_layout[rand_seq[j]][7]][1]
@@ -339,7 +380,7 @@ for set in range(len(maze_set)):
             background = pygame.image.load("assets/" + background_name + ".jpg").convert()
             trial_map = layout[rand_seq[j]]
 
-            pygame.display.set_caption('Move the agent to find the goal object')
+            # pygame.display.set_caption('Move the agent to find the goal object')
             run_trial(display, screen, trial_map, spr_player, spr_tiles, background, block_num, j)
             time.sleep(ITI)
             pygame.quit()
@@ -347,6 +388,11 @@ for set in range(len(maze_set)):
         # randomize maze sequenc and run quiz for this set
         rand_seq = random.sample(maze_seqlist, len(maze_seqlist))
         maze_seqs.append(['quiz', rand_seq])
+        display = pygame.display.set_mode((screen_length * 2, screen_width * 2))  # needs to be run before pygame.image.load
+        display_message_key(display, instructText['inst_quiz'], text_color)
+        display_message_key(display, instructText['start'], text_color)
+        pygame.quit()
+
         for j in range(len(rand_seq)):
             # define map & agent for this trial
             display = pygame.display.set_mode((screen_length * 2, screen_width * 2))  # needs to be run before pygame.image.load
@@ -361,9 +407,10 @@ for set in range(len(maze_set)):
             background = pygame.image.load("assets/" + background_name + ".jpg").convert()
             trial_map = layout[rand_seq[j]]
 
-            pygame.display.set_caption('Click where you think the goal object was in this maze!')
+            # pygame.display.set_caption('Click where you think the goal object was in this maze!')
             run_guess(display, screen, trial_map, spr_player, spr_tiles, background, block_num, j)
             time.sleep(1)
+        display_message_timed(display, instructText['greatjob'], text_color, 3)
         block_num += 1
 
 # write out a logfile
