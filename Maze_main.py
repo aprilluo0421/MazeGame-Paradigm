@@ -367,7 +367,7 @@ for set in range(len(maze_set)):
         # message: starting navigation
         display_message_key(display, instructText['inst_nav'], text_color)
         display_message_key(display, instructText['start'], text_color)
-        pygame.quit()
+        #pygame.quit()
         for j in range(len(rand_seq)):
             # display = pygame.display.set_mode((screen_length * 2, screen_width * 2)) 
             display = pygame.display.set_mode((0,0,), pygame.FULLSCREEN) # needs to be run before pygame.image.load, (screen_length * 2, screen_width * 2)
@@ -386,7 +386,7 @@ for set in range(len(maze_set)):
             # pygame.display.set_caption('Move the agent to find the goal object')
             run_trial(display, screen, trial_map, spr_player, spr_tiles, background, block_num, j)
             time.sleep(ITI)
-            pygame.quit()
+            #pygame.quit()
 
         # randomize maze sequenc and run quiz for this set
         rand_seq = random.sample(maze_seqlist, len(maze_seqlist))
@@ -394,7 +394,7 @@ for set in range(len(maze_set)):
         display = pygame.display.set_mode((0,0,), pygame.FULLSCREEN) # needs to be run before pygame.image.load, (screen_length * 2, screen_width * 2)
         display_message_key(display, instructText['inst_quiz'], text_color)
         display_message_key(display, instructText['start'], text_color)
-        pygame.quit()
+        #pygame.quit()
 
         for j in range(len(rand_seq)):
             # define map & agent for this trial

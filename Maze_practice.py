@@ -1,6 +1,7 @@
 import os
 import random
 import time
+import random
 from datetime import datetime, timezone
 
 import numpy as np
@@ -217,8 +218,6 @@ def run_guess(display, screen, trial_map, spr_player, spr_tiles, background):
                 for index in range(len(hidden_coor)):
                     if mouse_x in hidden_coor[index][0] and mouse_y in hidden_coor[index][1]:
                         guess_coor = ((hidden_coor[index][0][-1]+1-start_x) / 64, (hidden_coor[index][1][-1]+1-start_y) / 64) # or do not subtract
-                        line = ['quiz', block_num, trial_num + 1, '', '', guess_coor]
-                        output_df.append(line)
                         for obj in load:
                             if (obj.x / 32) + 1 == guess_coor[0] and (obj.y / 32) + 1 == guess_coor[1]:
                                 obj.type = 3
@@ -266,12 +265,14 @@ display = pygame.display.set_mode((0,0,), pygame.FULLSCREEN) # needs to be run b
 # message: starting navigation
 display_message_key(display, instructText['inst_nav'], text_color)
 display_message_key(display, instructText['start'], text_color)
-pygame.quit()
+#pygame.quit()
 
 
 # define map & agent for this trial
 # re-select in a map-specific manner
-for i in range(len(layout)):
+sequence = [0,1,2]
+random.shuffle(sequence)
+for i in sequence:
     display = pygame.display.set_mode((0,0,), pygame.FULLSCREEN)  # needs to be run before pygame.image.load
     player_name = maze_theme[layout[i][7]][0]
     tiles_name = maze_theme[layout[i][7]][1]
@@ -285,13 +286,14 @@ for i in range(len(layout)):
     # pygame.display.set_caption('Move the agent to find the goal object')
     run_trial(display, screen, trial_map, spr_player, spr_tiles, background)
     time.sleep(ITI)
-    pygame.quit()
+    #pygame.quit()
 
 display = pygame.display.set_mode((0,0,), pygame.FULLSCREEN)  # needs to be run before pygame.image.load
 display_message_key(display, instructText['inst_quiz'], text_color)
 display_message_key(display, instructText['start'], text_color)
 
-for i in range(len(layout)):
+random.shuffle(sequence)
+for i in sequence:
     # pygame.display.set_caption('Click where you think the goal object was in this maze!')
     player_name = maze_theme[layout[i][7]][0]
     tiles_name = maze_theme[layout[i][7]][1]

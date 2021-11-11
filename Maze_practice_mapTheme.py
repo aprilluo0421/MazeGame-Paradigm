@@ -30,6 +30,6 @@ layout = [
 
 maze_theme = {
     'clownfish' : ['clownfish', 'clownfish_1', 'sky-blue'],
-    'farmer' : ['farmer', 'farmer_1', 'brass-brown'],
+    'farmer' : ['farmer', 'farmer_1', 'brassbrown'],
     'giraffe' : ['giraffe', 'giraffe_1', 'android-green'],
 }
