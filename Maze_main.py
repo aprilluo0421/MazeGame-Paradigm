@@ -37,7 +37,7 @@ output_df = []
 globalClock = core.Clock()
 
 # define experiment structure & parameters
-nRepeat = 1
+nRepeat = 3
 ITI = 0.5 # pause before launching the next maze in second
 # hard-set features: do not change lines below
 pygame.display.init()
