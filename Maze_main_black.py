@@ -3,12 +3,11 @@ import random
 import time
 from datetime import datetime, timezone
 
-from psychopy import gui, core
-import psychopy
 import numpy as np
 import pandas as pd
 import pygame
 import pygame.freetype
+from psychopy import gui, core
 from pygame.locals import *
 from pygame import Color, Surface
 from Maze_map import *
@@ -178,7 +177,6 @@ def run_trial(display, screen, trial_map, spr_player, spr_tiles, background, blo
                             coordinate = (self.x / 32) + 1, (self.y / 32) + 1
                             self.cal_4_sides()
                             type = self.classify_blocks()
-                            print(type)
                             line = ['nav', block_num, trial_num, key_pressed, timestamp, coordinate, type, maze_ID]
                             output_df.append(line)
                     if event.key == pygame.K_DOWN and self.y < screen_width-32:
@@ -189,7 +187,6 @@ def run_trial(display, screen, trial_map, spr_player, spr_tiles, background, blo
                             coordinate = (self.x / 32) + 1, (self.y / 32) + 1
                             self.cal_4_sides()
                             type = self.classify_blocks()
-                            print(type)
                             line = ['nav', block_num, trial_num, key_pressed, timestamp, coordinate, type, maze_ID]
                             output_df.append(line)
                     if event.key == pygame.K_LEFT and self.x > 0:
@@ -200,7 +197,6 @@ def run_trial(display, screen, trial_map, spr_player, spr_tiles, background, blo
                             coordinate = (self.x / 32) + 1, (self.y / 32) + 1
                             self.cal_4_sides()
                             type = self.classify_blocks()
-                            print(type)
                             line = ['nav', block_num, trial_num, key_pressed, timestamp, coordinate, type, maze_ID]
                             output_df.append(line)
                     if event.key == pygame.K_RIGHT and self.x < screen_length-32:
@@ -211,7 +207,6 @@ def run_trial(display, screen, trial_map, spr_player, spr_tiles, background, blo
                             coordinate = (self.x / 32) + 1, (self.y / 32) + 1
                             self.cal_4_sides()
                             type = self.classify_blocks()
-                            print(type)
                             line = ['nav', block_num, trial_num, key_pressed, timestamp, coordinate, type, maze_ID]
                             output_df.append(line)
 
@@ -289,8 +284,8 @@ def run_trial(display, screen, trial_map, spr_player, spr_tiles, background, blo
     while alive:
 
         screen.blit(background, (0, 0))
-        blank_square = pygame.image.load("assets/blank-square-" + str(square_size) + ".png").convert_alpha()
-        display.blit(blank_square, (0, height-square_size))
+        #blank_square = pygame.image.load("assets/blank-square-" + str(square_size) + ".png").convert_alpha()
+        #display.blit(blank_square, (0, height-square_size))
 
         events = pygame.event.get()
 
@@ -329,8 +324,8 @@ def run_guess(display, screen, trial_map, spr_player, spr_tiles, background, blo
                 self.type = 3
 
     screen.blit(background, (0, 0))
-    blank_square = pygame.image.load("assets/blank-square-" + str(square_size) + ".png").convert_alpha()
-    display.blit(blank_square, (0, height-square_size))
+    #blank_square = pygame.image.load("assets/blank-square-" + str(square_size) + ".png").convert_alpha()
+    #display.blit(blank_square, (0, height-square_size))
     load = []
     hidden_coor = []
 
@@ -376,8 +371,8 @@ def run_guess(display, screen, trial_map, spr_player, spr_tiles, background, blo
 
 
 def black_square(surface,screen):
-    surface.fill((196, 196, 196))
-    black_square = pygame.image.load("assets/black-square-" + str(square_size) + ".png").convert_alpha()
+    #surface.fill((196, 196, 196))
+    black_square = pygame.image.load("assets/blank-square-" + str(square_size) + ".png").convert_alpha()
     surface.blit(black_square, (0, height-square_size))
     pygame.display.flip()
     time.sleep(1)
@@ -419,7 +414,7 @@ def counterbalance_maze_set (maze_idx, goal_quad):
     return maze_set
 
 def render_text(surface, text, text_size, color):
-    surface.fill((196, 196, 196))
+    surface.fill((0, 0, 0))# 255, 255,255 (white), 0, 0, 0 (black)
     text_rect = font.get_rect(text, size = text_size)
     text_rect.center = surface.get_rect().center
     font.render_to(surface, text_rect, text, color, size = text_size)
@@ -464,7 +459,7 @@ instructText = {'inst_nav': "Navigate to find the goal object.",
                 'greatjob': 'Great Job!',
                 'thankyou' : 'The experiment is finished, thank you for your participation.'
                 }
-text_color = (10, 10, 10)
+text_color = (255, 255, 255) # 255, 255,255 (white), 0, 0, 0 (black)
 
 pygame.init()
 font = pygame.freetype.SysFont("freesansbold", 0)
@@ -491,7 +486,7 @@ for set in range(len(maze_set)):
         for j in range(len(rand_seq)):
             # display = pygame.display.set_mode((screen_length * 2, screen_width * 2)) 
             display = pygame.display.set_mode((0,0,), pygame.FULLSCREEN) # needs to be run before pygame.image.load, (screen_length * 2, screen_width * 2)
-
+            #display.fill((196,196,196)) # if we want to keep gray periphery, it might flash
             # define map & agent for this trial
             # re-select in a map-specific manner
             player_name = maze_theme[new_layout[rand_seq[j]][7]][0]
