@@ -372,7 +372,7 @@ def run_guess(display, screen, trial_map, spr_player, spr_tiles, background, blo
 
 def black_square(surface,screen):
     #surface.fill((196, 196, 196))
-    black_square = pygame.image.load("assets/blank-square-" + str(square_size) + ".png").convert_alpha()
+    black_square = pygame.image.load("assets/white-square-" + str(square_size) + ".png").convert_alpha()
     surface.blit(black_square, (0, height-square_size))
     pygame.display.flip()
     time.sleep(1)
