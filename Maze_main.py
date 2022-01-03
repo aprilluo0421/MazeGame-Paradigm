@@ -3,6 +3,7 @@ import random
 import time
 from datetime import datetime, timezone
 
+import psychopy
 import numpy as np
 import pandas as pd
 import pygame
