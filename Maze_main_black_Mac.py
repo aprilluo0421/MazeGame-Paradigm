@@ -60,7 +60,7 @@ def run_trial(display, screen, trial_map, spr_player, spr_tiles, background, blo
         def __init__(self, x, y):
             self.x = x
             self.y = y 
-            self.sides = [1,1,1,1]
+
         
         def cal_4_sides(self):
             sides = [1,1,1,1]
@@ -141,8 +141,8 @@ def run_trial(display, screen, trial_map, spr_player, spr_tiles, background, blo
                 block = 'Z' # deadend
             if 2 in sides:
                 block = 'G' #  target revealed
-
-            # needs to be defined: E (entering)
+            if (self.x // 32, self.y // 32) == target:
+                block = 'E' # entering/ goal location
 
             return block
 
@@ -237,6 +237,7 @@ def run_trial(display, screen, trial_map, spr_player, spr_tiles, background, blo
             # this blits the tiles at the position, but starting with 6*32 end ending 32 further
             screen.blit(spr_tiles, (int(self.x), int(self.y)), (self.type * 32, 0, 32, 32))
 
+    pygame.event.clear()
     load = []
     remove = []
     player = Player(0, 0) # initial x y coordinate for a player is always [0 0]
