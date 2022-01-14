@@ -329,6 +329,7 @@ def run_guess(display, screen, trial_map, spr_tiles, background, block_num, tria
     pygame.display.flip()
 
     # For a valid click, give a visual feedback & log the response
+    pygame.event.clear()
     correctClick = False
     while not correctClick:
         events = pygame.event.get()
@@ -405,6 +406,7 @@ def display_message_timed(surface, text, text_color, holdtime):
     time.sleep(holdtime)
 
 def display_message_key(surface, text, text_color):
+    pygame.event.clear()
     wait = True
     render_text(surface, text, 35, text_color)
     pygame.display.flip()
