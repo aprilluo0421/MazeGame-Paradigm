@@ -23,5 +23,5 @@ pygame-based experiment script for a maze navigation task
 3. MazeGame/data/{subject id}_maze_log.txt - this is the main data file 
 
 ## Authors
-- Kamin Kim (github.com/kaminkim)
 - April Luo (github.com/aprilluo0421)
+- Kamin Kim (github.com/kaminkim)
