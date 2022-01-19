@@ -156,7 +156,7 @@ def run_trial(display, screen, trial_map, spr_player, spr_tiles, background, blo
                             coordinate = (self.x / 32) + 1, (self.y / 32) + 1
                             sides = self.cal_4_sides()
                             type = self.classify_blocks(sides)
-                            print(type)
+                            #print(type)
                             line = ['nav', block_num, trial_num, key_pressed, timestamp, coordinate, type, maze_ID]
                             output_df.append(line)
                     if event.key == pygame.K_DOWN and self.y < screen_height-32:
@@ -167,7 +167,7 @@ def run_trial(display, screen, trial_map, spr_player, spr_tiles, background, blo
                             coordinate = (self.x / 32) + 1, (self.y / 32) + 1
                             sides = self.cal_4_sides()
                             type = self.classify_blocks(sides)
-                            print(type)
+                            #print(type)
                             line = ['nav', block_num, trial_num, key_pressed, timestamp, coordinate, type, maze_ID]
                             output_df.append(line)
                     if event.key == pygame.K_LEFT and self.x > 0:
@@ -178,7 +178,7 @@ def run_trial(display, screen, trial_map, spr_player, spr_tiles, background, blo
                             coordinate = (self.x / 32) + 1, (self.y / 32) + 1
                             sides = self.cal_4_sides()
                             type = self.classify_blocks(sides)
-                            print(type)
+                            #print(type)
                             line = ['nav', block_num, trial_num, key_pressed, timestamp, coordinate, type, maze_ID]
                             output_df.append(line)
                     if event.key == pygame.K_RIGHT and self.x < screen_width-32:
@@ -189,7 +189,7 @@ def run_trial(display, screen, trial_map, spr_player, spr_tiles, background, blo
                             coordinate = (self.x / 32) + 1, (self.y / 32) + 1
                             sides = self.cal_4_sides()
                             type = self.classify_blocks(sides)
-                            print(type)
+                            #print(type)
                             line = ['nav', block_num, trial_num, key_pressed, timestamp, coordinate, type, maze_ID]
                             output_df.append(line)
 
