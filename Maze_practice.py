@@ -30,7 +30,7 @@ globalClock = core.Clock()
 # define experiment structure & parameters
 nRepeat = 1
 ITI = 0.5 # pause before launching the next maze in second
-photodiode_square_size = 0 # choosing from SS_levels
+photodiode_square_size = 3 # choosing from SS_levels
 SS_levels = [16, 24, 32, 48, 64, 128]
 
 # hard-set features: do not change lines below
