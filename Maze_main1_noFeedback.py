@@ -334,18 +334,78 @@ def run_guess(display, screen, trial_map, spr_tiles, background, block_num, tria
                 for index in range(len(hidden_coor)):
                     if mouse_x in hidden_coor[index][0] and mouse_y in hidden_coor[index][1]:
                         guess_coor = ((hidden_coor[index][0][-1]+1-start_x) / 64, (hidden_coor[index][1][-1]+1-start_y) / 64) # or do not subtract
-                        line = ['quiz', block_num, trial_num + 1, '', '', guess_coor, '', maze_ID]
+                        line = ['contextual_quiz', block_num, trial_num + 1, '', '', guess_coor, '', maze_ID]
+                        output_df.append(line)
+                        for obj in load:
+                            if (obj.x / 32) + 1 == guess_coor[0] and (obj.y / 32) + 1 == guess_coor[1]:    
+                                obj.type = 3
+                                obj.draw()
+                                correctClick = True 
+        display.blit(pygame.transform.scale(screen, (screen_width * 2, screen_height * 2)), ((width / 2) - screen_width, (height / 2) - screen_height))  # (0,0)
+        pygame.display.flip()
+    time.sleep(0.5)  # display stays for 0.5sec after the response
+
+def run_guess_structure(display, screen, trial_map, block_num, trial_num, maze_ID):
+    # load & display the initial map status
+    # ask where the goal would be
+    # record the coordinate (from the maze matrix) of mouse click
+
+    spr_tiles = pygame.image.load("assets/maze_structure.png").convert_alpha()
+    background = pygame.image.load("assets/anti-flash-white.jpg").convert()
+
+    class Terrain():
+        def __init__(self, x, y, Type):
+            self.x = x
+            self.y = y
+            self.col = False
+            self.type = Type
+                
+        def draw(self):
+            # this blits the tiles at the position, but starting with 6*32 end ending 32 further
+            screen.blit(spr_tiles, (int(self.x), int(self.y)), (self.type * 32, 0, 32, 32))
+        
+
+    load = []
+    hidden_coor = []
+    target = ()
+    for i in range(len(trial_map)):
+        for j in range(len(trial_map[i])):
+            if trial_map[i][j] == "P":
+                load.append(Terrain(j * 32, i * 32, 1))
+            if trial_map[i][j] == "0":
+                load.append(Terrain(j * 32, i * 32, 0))
+            if trial_map[i][j] == "1":
+                load.append(Terrain(j * 32, i * 32, 1))
+                hidden_coor.append((range(start_x + (j * 64), start_x + ((j+1) * 64)),range(start_y + (i * 64), start_y + ((i+1) * 64))))
+            if trial_map[i][j] == "2":
+                load.append(Terrain(j * 32, i * 32, 1))
+                target = (j+1,i+1)
+                hidden_coor.append((range(start_x + (j * 64), start_x + ((j+1) * 64)),range(start_y + (i * 64), start_y + ((i+1) * 64))))
+
+    screen.blit(background, (0, 0))
+    for obj in load:
+        obj.draw()
+        display.blit(pygame.transform.scale(screen, (screen_width * 2, screen_height * 2)), ((width / 2) - screen_width, (height / 2) - screen_height))  # (0,0)
+    pygame.display.flip()
+
+    # For a valid click, give a visual feedback & log the response
+    pygame.event.clear()  # clear events first
+    correctClick = False
+    while not correctClick:
+        events = pygame.event.get()
+        for event in events:
+            if event.type == MOUSEBUTTONDOWN and event.button == 1:
+                mouse_x, mouse_y = pygame.mouse.get_pos()
+                for index in range(len(hidden_coor)):
+                    if mouse_x in hidden_coor[index][0] and mouse_y in hidden_coor[index][1]:
+                        guess_coor = ((hidden_coor[index][0][-1]+1-start_x) / 64, (hidden_coor[index][1][-1]+1-start_y) / 64) # or do not subtract
+                        line = ['non_contextual_quiz', block_num, trial_num + 1, '', '', guess_coor, '', maze_ID]
                         output_df.append(line)
                         for obj in load:
                             if (obj.x / 32) + 1 == guess_coor[0] and (obj.y / 32) + 1 == guess_coor[1]:
-                                    if guess_coor[0] == target[0] and guess_coor[1] == target[1]:
-                                        obj.type = 4
-                                        obj.draw()
-                                        correctClick = True
-                                        break
-                                    obj.type = 3
-                                    obj.draw()
-                                    correctClick = True 
+                                obj.type = 2
+                                obj.draw()
+                                correctClick = True 
         display.blit(pygame.transform.scale(screen, (screen_width * 2, screen_height * 2)), ((width / 2) - screen_width, (height / 2) - screen_height))  # (0,0)
         pygame.display.flip()
     time.sleep(0.5)  # display stays for 0.5sec after the response
@@ -442,7 +502,8 @@ instructText = {'inst_nav': "Navigate to find the goal object. Press a key to go
                 'new_set': "You'll now visit NEW mazes! Press a key to go proceed.",
                 'start': "Press a key to when you are ready to start.",
                 'greatjob': 'You finished this block. Great Job!',
-                'thankyou' : 'The experiment is finished, thank you for your participation.'
+                'thankyou' : 'The experiment is finished, thank you for your participation.',
+                'non_contextual_quiz' : "You'll now see non-contextual quizzes. Press a key to go proceed."
                 }
 text_color = (255, 255, 255) # 255, 255,255 (white), 0, 0, 0 (black)
 
@@ -484,7 +545,7 @@ for set in range(len(maze_set)):
             run_trial(display, screen, trial_map, spr_player, spr_tiles, background, block_num, j, maze_ID)            # display = pygame.display.set_mode((0,0,), pygame.FULLSCREEN)
             photodiode_square(display)
 
-        # -------------- QUIZ --------------#
+        # -------------- CONTEXTUAL QUIZ --------------#
         # messages
         display_message_key(display, instructText['inst_quiz'], text_color)
         display_message_key(display, instructText['start'], text_color)
@@ -493,7 +554,7 @@ for set in range(len(maze_set)):
 
         # randomize maze sequence and run quiz for this set
         rand_seq = random.sample(maze_seqlist, len(maze_seqlist))
-        maze_seqs.append(['quiz', rand_seq])
+        maze_seqs.append(['contextual_quiz', rand_seq])
         for j in range(len(rand_seq)):
             # call map for this trial
             tiles_name = maze_theme[new_layout[rand_seq[j]][7]][1]
@@ -505,9 +566,29 @@ for set in range(len(maze_set)):
             # run a quiz trial
             run_guess(display, screen, trial_map, spr_tiles, background, block_num, j, maze_ID)
             photodiode_square(display)
+
+        # -------------- NON-CONTEXTUAL QUIZ --------------#
+        # messages
+        display_message_key(display, instructText['non_contextual_quiz'], text_color)
+        display_message_key(display, instructText['inst_quiz'], text_color)
+        display_message_key(display, instructText['start'], text_color)
+        display.fill((0, 0, 0))
+        pygame.mouse.set_visible(True)
+
+        # randomize maze sequence and run quiz for this set
+        rand_seq = random.sample(maze_seqlist, len(maze_seqlist))
+        maze_seqs.append(['non_contextual_quiz', rand_seq])
+        for j in range(len(rand_seq)):
+            # call map for this trial
+            trial_map = layout[rand_seq[j]]
+            maze_ID = rand_seq[j]
+            # run a quiz trial
+            run_guess_structure(display, screen, trial_map, block_num, j, maze_ID)
+            photodiode_square(display)
         display_message_timed(display, instructText['greatjob'], text_color, 3)
         block_num += 1
 
+        
 # write out a logfile
 for i in range(len(output_df)-1):
     if output_df[i][0] == 'nav':
