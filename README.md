@@ -24,5 +24,4 @@ pygame-based experiment script for a maze navigation task
 
 ## Authors
 - April Luo (github.com/aprilluo0421)
-- Maya Geva-Sagiv (https://github.com/mgevasagiv) - mgevasagiv @ ucdavis.edu 
 - Kamin Kim (github.com/kaminkim)

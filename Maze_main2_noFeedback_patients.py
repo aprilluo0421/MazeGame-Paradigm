@@ -1,7 +1,7 @@
 import os
 import random
 import time
-from datetime import datetime, timezone
+#from datetime import datetime, timezone
 import numpy as np
 import pandas as pd
 import pygame
@@ -40,15 +40,19 @@ output_df = []
 header_data = ['task', 'block', 'trial','key_pressed', 'timestamp', 'coordinate', 'block_type', 'maze_ID', 'rt'] #edit
 header_seq = ['task', 'sequence']
 header_theme = ['theme']
+header_quiz = ['block', 'contextual_quiz_score']
 f_data = open(filedir_data + "%s_maze_log.csv" %(subjectID), 'w', encoding='UTF8', newline='')
 f_seq = open(filedir_config + "%s_maze_seq.csv" %(subjectID), 'w', encoding='UTF8', newline='')
 f_theme = open(filedir_config + "%s_maze_themes.csv" %(subjectID), 'w', encoding='UTF8', newline='')
+f_quiz = open(filedir_config + "%s_maze_contextual_quiz_acc.csv" %(subjectID), 'w', encoding='UTF8', newline='')
 writer_data = csv.writer(f_data)
 writer_data.writerow(header_data)
 writer_seq = csv.writer(f_seq)
 writer_seq.writerow(header_seq)
 writer_theme = csv.writer(f_theme)
 writer_theme.writerow(header_theme)
+writer_quiz = csv.writer(f_quiz)
+writer_quiz.writerow(header_quiz)
 
 
 # Set up a global clock for keeping time
@@ -376,12 +380,13 @@ def run_guess(display, screen, trial_map, spr_tiles, background, block_num, tria
                         writer_data.writerow(line)
                         for obj in load:
                             if (obj.x / 32) + 1 == guess_coor[0] and (obj.y / 32) + 1 == guess_coor[1]:    
-                                obj.type = 3
+                                obj.type = 7
                                 obj.draw()
                                 correctClick = True 
         display.blit(pygame.transform.scale(screen, (screen_width * 2, screen_height * 2)), ((width / 2) - screen_width, (height / 2) - screen_height))  # (0,0)
         pygame.display.flip()
     time.sleep(0.5)  # display stays for 0.5sec after the response
+    return guess_coor
 
 def run_guess_structure(display, screen, trial_map, block_num, trial_num, maze_ID):
     # load & display the initial map status
@@ -447,7 +452,7 @@ def run_guess_structure(display, screen, trial_map, block_num, trial_num, maze_I
                         writer_data.writerow(line)
                         for obj in load:
                             if (obj.x / 32) + 1 == guess_coor[0] and (obj.y / 32) + 1 == guess_coor[1]:
-                                obj.type = 2
+                                obj.type = 6
                                 obj.draw()
                                 correctClick = True 
         display.blit(pygame.transform.scale(screen, (screen_width * 2, screen_height * 2)), ((width / 2) - screen_width, (height / 2) - screen_height))  # (0,0)
@@ -520,12 +525,27 @@ def display_message_key(surface, text, text_color):
             if event.type == pygame.KEYDOWN:
                 wait = False
 
+def display_message_key_adjusted_font(surface, text, text_color, text_font):
+    pygame.event.clear() # clear events first
+    wait = True
+    render_text(surface, text, text_font, text_color)
+    pygame.display.flip()
+    while wait:
+        events = pygame.event.get()
+        for event in events:
+            if event.type == pygame.KEYDOWN:
+                wait = False
+
 ############## prepare stimuli ###########################
 # associate each maze (layout) with a randomly-selected theme (shuffled)
 random.shuffle(theme_strings)
 new_layout = [layout[a] + (theme_strings[a],) for a in range(len(theme_strings))]
 theme_df = pd.DataFrame(theme_strings)
 theme_df.to_csv(filedir_config + "%s_maze_themes.csv" %(subjectID), header = ['theme'], sep = ',')
+
+# for 4th block
+new_layout_4th_block = [layout_4th_block[a] + (theme_strings[a],) for a in range(len(theme_strings))]
+
 
 # maze assignment across blocks
 # 8 mazes are learned over a chunk of 3 block [total 9 blocks, 24 mazes]
@@ -534,13 +554,19 @@ theme_df.to_csv(filedir_config + "%s_maze_themes.csv" %(subjectID), header = ['t
 # - repeated over 3 consecutive blocks
 
 # Extract goal locations from maze_map, assign mazes to 3 sets while counterbalancing for which quadrant the goal is
-goal_quad = []
+goal_quad = [] 
 for maze in range(len(layout)):
     goal = get_coord(layout[maze]) # gets target location
     goal_quad.append(get_quad(goal[0], goal[1], map_dimension))
 goal_quad = np.array(goal_quad)
 maze_idx = np.arange(len(goal_quad))
 maze_set = counterbalance_maze_set(maze_idx, goal_quad)
+
+# get the maze index for 4th block
+maze_set_4th_block = random.sample(maze_set[0].tolist(), 2)
+maze_set_4th_block.extend(random.sample(maze_set[1].tolist(), 3))
+maze_set_4th_block.extend(random.sample(maze_set[2].tolist(), 3))
+
 
 ############## prepare messages ###########################
 instructText = {'inst_nav': "Navigate to find the goal object. Press a key to go proceed.",
@@ -559,6 +585,7 @@ display = pygame.display.set_mode((0,0,), pygame.FULLSCREEN)
 
 block_num = 1
 maze_seqs = []
+context_quiz_acc_all = []
 # beginning - photodiode and audio, beginning timestamp
 timer = core.Clock()
 with open(filedir_data + "%s_maze_log.csv" %(subjectID), 'a') as f_data:
@@ -575,6 +602,8 @@ with open(filedir_data + "%s_maze_log.csv" %(subjectID), 'a') as f_data:
         beep.play()
         time.sleep(photodiode_interval) 
     f_data.close()
+
+# for mazeset 1-3
 for set in range(len(maze_set)):
     maze_seq = maze_set[set] # DO NOT SHUFFLE THIS
     maze_seqlist = maze_seq.tolist()
@@ -651,6 +680,7 @@ for set in range(len(maze_set)):
 
         # -------------- CONTEXTUAL QUIZ --------------#
         # messages
+        correct_context_quiz = 0
         display_message_key(display, instructText['inst_quiz'], text_color)
         timestamp = timer.getTime()
         line = ['inst - inst_quiz', block_num, '', '', timestamp]
@@ -686,7 +716,10 @@ for set in range(len(maze_set)):
                 trial_map = layout[rand_seq[j]]
                 maze_ID = rand_seq[j]
                 # run a quiz trial
-                run_guess(display, screen, trial_map, spr_tiles, background, block_num, j, maze_ID, player_name)                
+                guess_coor = run_guess(display, screen, trial_map, spr_tiles, background, block_num, j, maze_ID, player_name)                  
+                goal = get_coord(layout[maze_ID]) 
+                if (guess_coor[0] == goal[1]+1) & (guess_coor[1] == goal[0]+1):
+                    correct_context_quiz += 1               
                 rep = random.randint(3,5)
                 for x in range(rep):
                     timestamp = timer.getTime()
@@ -701,6 +734,13 @@ for set in range(len(maze_set)):
                     beep.play()
                     time.sleep(photodiode_interval)
                 f_data.close()
+        if block == 2:
+            context_quiz_score = int((correct_context_quiz/8)*100)
+            context_quiz_acc_all.append([block_num, context_quiz_score])
+            with open(filedir_data + "%s_maze_contextual_quiz_acc.csv" %(subjectID), 'a') as f_quiz:
+                writer_quiz = csv.writer(f_quiz)
+                writer_quiz.writerow([block_num, context_quiz_score])
+                f_quiz.close()
         display_message_timed(display, instructText['greatjob'], text_color, 3)
         timestamp = timer.getTime()
         line = ['inst - greatjob', block_num, '', '', timestamp]
@@ -708,7 +748,7 @@ for set in range(len(maze_set)):
         with open(filedir_data + "%s_maze_log.csv" %(subjectID), 'a') as f_data:
             writer_data = csv.writer(f_data)
             writer_data.writerow(line)
-            f_data.close()
+            f_data.close()       
         block_num += 1
 
     
@@ -773,6 +813,215 @@ for set in range(len(maze_set)):
         writer_data.writerow(line)
         f_data.close()
 
+
+# for the 4th mazeset
+display_message_key(display, instructText['new_set'], text_color)
+timestamp = timer.getTime()
+line = ['inst - new_set', block_num, '', '', timestamp]
+output_df.append(line)
+with open(filedir_data + "%s_maze_log.csv" %(subjectID), 'a') as f_data:
+    writer_data = csv.writer(f_data)
+    writer_data.writerow(line)
+    f_data.close()
+
+
+# repeat this set over nRepeat blocks - with maze order shuffled for each repetition
+context_quiz_acc = []
+for block in range(nRepeat):
+    #-------------- NAVIGATION --------------#
+    # message: starting navigation
+    display_message_key(display, instructText['inst_nav'], text_color)
+    timestamp = timer.getTime()
+    line = ['inst - inst_nav', block_num, '', '', timestamp]
+    output_df.append(line)
+    with open(filedir_data + "%s_maze_log.csv" %(subjectID), 'a') as f_data:
+        writer_data = csv.writer(f_data)
+        writer_data.writerow(line)
+        display_message_key(display, instructText['start'], text_color)
+        timestamp = timer.getTime()
+        line = ['inst - start', block_num, '', '', timestamp]
+        output_df.append(line)
+        writer_data.writerow(line)
+        f_data.close()
+    display.fill((0, 0, 0))
+    pygame.mouse.set_visible(False)
+
+    # randomize maze sequence, set up and run each trial
+    rand_seq = random.sample(maze_set_4th_block, len(maze_set_4th_block))
+    maze_seqs.append(['nav', rand_seq])
+    with open(filedir_config + "%s_maze_seq.csv" %(subjectID), 'a') as f_seq:
+        writer_seq = csv.writer(f_seq)
+        writer_seq.writerow(['nav', rand_seq])
+        f_seq.close()
+    for j in range(len(rand_seq)):
+        # call map & agent for this trial
+        with open(filedir_data + "%s_maze_log.csv" %(subjectID), 'a') as f_data:
+            writer_data = csv.writer(f_data)
+            player_name = maze_theme[new_layout_4th_block[rand_seq[j]][7]][0]
+            tiles_name = maze_theme[new_layout_4th_block[rand_seq[j]][7]][1]
+            background_name = maze_theme[new_layout_4th_block[rand_seq[j]][7]][2]
+            spr_player = pygame.image.load("assets/" + player_name + ".png").convert_alpha()
+            spr_tiles = pygame.image.load("assets/" + tiles_name + ".png").convert_alpha()
+            background = pygame.image.load("assets/" + background_name + ".jpg").convert()
+            trial_map = layout_4th_block[rand_seq[j]]
+            maze_ID = rand_seq[j]
+            # run a navigation trial
+            run_trial(display, screen, trial_map, spr_player, spr_tiles, background, block_num, j, maze_ID, player_name)            # display = pygame.display.set_mode((0,0,), pygame.FULLSCREEN)                          
+            rep = random.randint(3,5)
+            for x in range(rep):
+                timestamp = timer.getTime()
+                line = ['before_photodiode_square', block_num, j + 1, '', timestamp]
+                output_df.append(line)
+                writer_data.writerow(line)
+                photodiode_square(display)
+                timestamp = timer.getTime()
+                line = ['after_photodiode_square', block_num, j + 1, '', timestamp]
+                output_df.append(line)
+                writer_data.writerow(line)
+                beep.play()
+                time.sleep(photodiode_interval) 
+            f_data.close()
+
+        
+
+                    
+
+    # -------------- CONTEXTUAL QUIZ --------------#
+    # messages
+    correct_context_quiz = 0
+    display_message_key(display, instructText['inst_quiz'], text_color)
+    timestamp = timer.getTime()
+    line = ['inst - inst_quiz', block_num, '', '', timestamp]
+    output_df.append(line)
+    with open(filedir_data + "%s_maze_log.csv" %(subjectID), 'a') as f_data:
+        writer_data = csv.writer(f_data)
+        writer_data.writerow(line)          
+        display_message_key(display, instructText['start'], text_color)
+        timestamp = timer.getTime()
+        line = ['inst - start', block_num, '', '', timestamp]
+        output_df.append(line)
+        writer_data.writerow(line)
+        f_data.close()
+    display.fill((0, 0, 0))
+    pygame.mouse.set_visible(True)
+
+    # randomize maze sequence and run quiz for this set
+    rand_seq = random.sample(maze_set_4th_block, len(maze_set_4th_block))
+    maze_seqs.append(['contextual_quiz', rand_seq])
+    with open(filedir_config + "%s_maze_seq.csv" %(subjectID), 'a') as f_seq:
+        writer_seq = csv.writer(f_seq)
+        writer_seq.writerow(['contextual_quiz', rand_seq])
+        f_seq.close()
+    for j in range(len(rand_seq)):
+        # call map for this trial
+        with open(filedir_data + "%s_maze_log.csv" %(subjectID), 'a') as f_data:
+            writer_data = csv.writer(f_data)
+            player_name = maze_theme[new_layout_4th_block[rand_seq[j]][7]][0]
+            tiles_name = maze_theme[new_layout_4th_block[rand_seq[j]][7]][1]
+            background_name = maze_theme[new_layout_4th_block[rand_seq[j]][7]][2]
+            spr_tiles = pygame.image.load("assets/" + tiles_name + ".png").convert_alpha()
+            background = pygame.image.load("assets/" + background_name + ".jpg").convert()
+            trial_map = layout_4th_block[rand_seq[j]]
+            maze_ID = rand_seq[j]
+            # run a quiz trial
+            guess_coor = run_guess(display, screen, trial_map, spr_tiles, background, block_num, j, maze_ID, player_name)                  
+            goal = get_coord(layout_4th_block[maze_ID]) 
+            if (guess_coor[0] == goal[1]+1) & (guess_coor[1] == goal[0]+1):
+                correct_context_quiz += 1
+            rep = random.randint(3,5)
+            for x in range(rep):
+                timestamp = timer.getTime()
+                line = ['before_photodiode_square', block_num, j + 1, '', timestamp]
+                output_df.append(line)
+                writer_data.writerow(line)
+                photodiode_square(display)
+                timestamp = timer.getTime()
+                line = ['after_photodiode_square', block_num, j + 1, '', timestamp]
+                output_df.append(line)
+                writer_data.writerow(line)
+                beep.play()
+                time.sleep(photodiode_interval)
+            f_data.close()
+    context_quiz_score = int((correct_context_quiz/8)*100)
+    context_quiz_acc.append(context_quiz_score)
+    context_quiz_acc_all.append([block_num, context_quiz_score])
+    display_message_timed(display, instructText['greatjob'], text_color, 3)
+    timestamp = timer.getTime()
+    line = ['inst - greatjob', block_num, '', '', timestamp]
+    output_df.append(line)
+    with open(filedir_data + "%s_maze_log.csv" %(subjectID), 'a') as f_data:
+        writer_data = csv.writer(f_data)
+        writer_data.writerow(line)
+        f_data.close()
+    with open(filedir_data + "%s_maze_contextual_quiz_acc.csv" %(subjectID), 'a') as f_quiz:
+        writer_quiz = csv.writer(f_quiz)
+        writer_quiz.writerow([block_num, context_quiz_score])
+        f_quiz.close()
+    block_num += 1
+
+
+# -------------- NON-CONTEXTUAL QUIZ --------------#
+# messages
+display_message_key(display, instructText['non_contextual_quiz'], text_color)
+timestamp = timer.getTime()
+with open(filedir_data + "%s_maze_log.csv" %(subjectID), 'a') as f_data:
+    writer_data = csv.writer(f_data)
+    line = ['inst - non_contextual_quiz', block_num, '', '', timestamp]
+    output_df.append(line)
+    writer_data.writerow(line)
+    display_message_key(display, instructText['inst_quiz'], text_color)
+    timestamp = timer.getTime()
+    line = ['inst - inst_quiz', block_num, '', '', timestamp]
+    output_df.append(line)
+    writer_data.writerow(line)
+    display_message_key(display, instructText['start'], text_color)
+    timestamp = timer.getTime()
+    line = ['inst - start', block_num, '', '', timestamp]
+    output_df.append(line)
+    writer_data.writerow(line)
+    f_data.close()
+display.fill((0, 0, 0))
+pygame.mouse.set_visible(True)
+
+# randomize maze sequence and run quiz for this set
+rand_seq = random.sample(maze_set_4th_block, len(maze_set_4th_block))
+maze_seqs.append(['non_contextual_quiz', rand_seq])
+with open(filedir_config + "%s_maze_seq.csv" %(subjectID), 'a') as f_seq:
+        writer_seq = csv.writer(f_seq)
+        writer_seq.writerow(['non_contextual_quiz', rand_seq])
+        f_seq.close()
+for j in range(len(rand_seq)):
+    # call map for this trial
+    with open(filedir_data + "%s_maze_log.csv" %(subjectID), 'a') as f_data:
+        writer_data = csv.writer(f_data)
+        trial_map = layout_4th_block[rand_seq[j]]
+        maze_ID = rand_seq[j]
+        # run a quiz trial
+        run_guess_structure(display, screen, trial_map, block_num-1, j, maze_ID)      
+        rep = random.randint(3,5)
+        for x in range(rep):
+            timestamp = timer.getTime()
+            line = ['before_photodiode_square', block_num, j + 1, '', timestamp]
+            output_df.append(line)
+            writer_data.writerow(line)
+            photodiode_square(display)
+            timestamp = timer.getTime()
+            line = ['after_photodiode_square', block_num, j + 1, '', timestamp]
+            output_df.append(line)
+            writer_data.writerow(line)
+            beep.play()
+            time.sleep(photodiode_interval)
+        f_data.close()
+display_message_timed(display, instructText['greatjob'], text_color, 3)  
+timestamp = timer.getTime()
+line = ['inst - greatjob', block_num, '', '', timestamp]
+output_df.append(line)
+with open(filedir_data + "%s_maze_log.csv" %(subjectID), 'a') as f_data:
+    writer_data = csv.writer(f_data)
+    writer_data.writerow(line)
+    f_data.close()
+
+
 # write out a logfile
 for i in range(len(output_df)-1):
     if output_df[i][0] == 'nav':
@@ -801,6 +1050,13 @@ theme_df = pd.DataFrame(theme_strings)
 os.chdir(filedir_config)
 theme_df.to_csv("%s_maze_themes.csv" %(subjectID), header = ['theme'], sep = ',')
 
+# save last 3 contextual quiz from each mazeset + 3 contextual quiz from each rep for the 4th block
+quiz_df = pd.DataFrame(context_quiz_acc_all)
+os.chdir(filedir_data)
+quiz_df.to_csv("%s_maze_contextual_quiz_acc.csv" %(subjectID), header = ['block', 'contextual_quiz_score'], sep = ',')
+
+quiz_message = "Your previous 3 contextual quiz scores for each repetition are " + str(context_quiz_acc[0]) + "%, " + str(context_quiz_acc[1]) + "%, " + str(context_quiz_acc[2]) + "%. Press a key to go proceed."
+display_message_key_adjusted_font(display, quiz_message, text_color, 20)
 display_message_timed(display, instructText['thankyou'], text_color, 3)
 
 
